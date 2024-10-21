@@ -1,13 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	// third-party libraries
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
 	// internal
 	"tester/telegram/env"
+	"tester/telegram/tools"
 )
 
 var numericKeyboard = tgbotapi.NewReplyKeyboard(
@@ -53,6 +56,9 @@ func main() {
 	// Let's go through each update that we're getting from Telegram.
 	for update := range updates {
 
+		// split the message text message based on white space delimiter
+		texts := strings.Fields(update.Message.Text)
+
 		if !update.Message.IsCommand() { // ignore any non-command Messages
 			continue
 		}
@@ -76,6 +82,30 @@ func main() {
 		case "close":
 			msg.Text = "Closing a keyboard input"
 			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+
+		case "git_fetch":
+			if len(texts) > 2 {
+				path := texts[1]
+				sshFilepath := texts[2]
+
+				// default values
+				// TODO: to be moved to a config in future
+				sshUser := "git"
+				sshPassword := ""
+
+				// get all the references for the git repo
+				refs, err := tools.GetGitRepoReferences(sshUser, sshFilepath, sshPassword, path)
+				if err != nil {
+					fmt.Println(err.Error())
+					msg.Text = "Command failed:\n" + err.Error()
+				} else {
+					result := strings.Join(refs, ",")
+					msg.Text = "Command completed:\n" + result
+				}
+
+			} else {
+				msg.Text = "Command NOT completed:\nDue to lack of parameters\nSample:\\git_fetch {full_path_to_git_repo} {full_path_to_ssh_private_key}"
+			}
 
 		default:
 			msg.Text = "I don't know that command"
