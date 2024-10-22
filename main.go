@@ -1,13 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	// third-party libraries
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
 	// internal
 	"tester/telegram/env"
+	"tester/telegram/tools"
 )
 
 var numericKeyboard = tgbotapi.NewReplyKeyboard(
@@ -53,6 +56,9 @@ func main() {
 	// Let's go through each update that we're getting from Telegram.
 	for update := range updates {
 
+		// split the message text message based on white space delimiter
+		texts := strings.Fields(update.Message.Text)
+
 		if !update.Message.IsCommand() { // ignore any non-command Messages
 			continue
 		}
@@ -76,6 +82,27 @@ func main() {
 		case "close":
 			msg.Text = "Closing a keyboard input"
 			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+
+		case "test_upload":
+			if len(texts) > 6 {
+				ak := texts[1]
+				sk := texts[2]
+				endPoint := texts[3]
+				bucketName := texts[4]
+				objectName := texts[5]
+				filepath := texts[6]
+
+				err := tools.UploadToHuaweiCloud(ak, sk, endPoint, bucketName, objectName, filepath)
+				if err != nil {
+					fmt.Println(err.Error())
+					msg.Text = "Command failed:\n" + err.Error()
+				} else {
+					msg.Text = "Command completed:\n"
+				}
+
+			} else {
+				msg.Text = "Command NOT completed:\nDue to lack of parameters\nSample:\\test_upload {access_key_id} {secret_access_key} {enpoint_url} {bucket_name} {object_name} {filepath}"
+			}
 
 		default:
 			msg.Text = "I don't know that command"

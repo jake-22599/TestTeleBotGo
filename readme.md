@@ -13,3 +13,4 @@ execute this command "go run -tags DEBUG_BUILD ."
 - https://go-telegram-bot-api.dev/getting-started/
 - https://medium.com/swlh/build-a-telegram-bot-in-go-in-9-minutes-e06ad38acef1
 - https://github.com/go-telegram/bot
+- https://support.huaweicloud.com/intl/en-us/sdk-go-devg-obs/obs_23_0402.html#section5
