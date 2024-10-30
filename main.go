@@ -1,13 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	// third-party libraries
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
 	// internal
+	constant "tester/telegram/const"
 	"tester/telegram/env"
+	"tester/telegram/tools"
 )
 
 var numericKeyboard = tgbotapi.NewReplyKeyboard(
@@ -24,6 +27,9 @@ var numericKeyboard = tgbotapi.NewReplyKeyboard(
 )
 
 func main() {
+	// load the access control system
+	permissons := tools.InitalizeInstance("conf/model.conf", "conf/policy.csv")
+
 	telegramBotToken := env.GetTelegramBotToken()
 	log.Printf("TELEGRAM_BOT_TOKEN %s", telegramBotToken)
 
@@ -60,6 +66,33 @@ func main() {
 		// Create a new MessageConfig. We don't have text yet,
 		// so we leave it empty.
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+
+		// get the command str from the message
+		cmdStr := update.Message.Command()
+
+		// the user that wants to access a resource.
+		permissons.Subject = update.Message.From.UserName
+		// the resource that is going to be accessed.
+		permissons.Object = cmdStr
+		// the operation that the user performs on the resource.
+		permissons.Action = constant.Execute.String()
+
+		if permissons.Evaluate() {
+			// permit user to access
+			log.Printf("Access granted to: %s(%d)", update.Message.From.UserName, update.Message.From.ID)
+		} else {
+			// log error
+			logStr := fmt.Sprintf("No access: %s(%d)", update.Message.From.UserName, update.Message.From.ID)
+			log.Println(logStr)
+
+			// deny the request, return the user an error message
+			respMsg := fmt.Sprintf("No access to use command; %s", cmdStr)
+			msg.Text = respMsg
+			if _, err := bot.Send(msg); err != nil {
+				log.Panic(err)
+			}
+			continue
+		}
 
 		// Extract the command from the Message.
 		switch update.Message.Command() {
